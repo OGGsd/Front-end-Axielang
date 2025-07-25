@@ -1,0 +1,64 @@
+# Multi-stage build for Axie Studio Frontend with integrated documentation
+FROM node:20-alpine as frontend_build
+
+# Build arguments
+ARG BACKEND_URL
+ARG DOCS_URL=https://docs.axiestudio.com
+
+WORKDIR /app
+
+# Copy frontend package files
+COPY ./package.json ./package-lock.json ./tsconfig.json ./vite.config.mts ./index.html ./tailwind.config.js ./postcss.config.js ./prettier.config.js /app/
+
+# Install frontend dependencies
+RUN npm install
+
+# Copy frontend source
+COPY ./src /app/src
+
+# Build frontend
+RUN npm run build
+
+# Documentation build stage (optional - for static serving)
+FROM node:20-alpine as docs_build
+
+WORKDIR /docs
+
+# Copy documentation files
+COPY ../axie-studio-docs/package.json ../axie-studio-docs/package-lock.json /docs/
+RUN npm install
+
+COPY ../axie-studio-docs /docs/
+RUN npm run build
+
+# Production stage
+FROM nginx:alpine
+
+# Install envsubst for environment variable substitution
+RUN apk add --no-cache gettext
+
+# Copy frontend build
+COPY --from=frontend_build /app/build/ /usr/share/nginx/html
+
+# Copy documentation build (optional - for static serving)
+# COPY --from=docs_build /docs/build/ /usr/share/nginx/html/docs
+
+# Copy nginx configuration
+COPY nginx-docs.conf /etc/nginx/conf.d/default.conf.template
+
+# Copy startup script
+COPY start-nginx-with-docs.sh /start-nginx.sh
+RUN chmod +x /start-nginx.sh
+
+# Environment variables
+ENV BACKEND_URL=$BACKEND_URL
+ENV DOCS_URL=$DOCS_URL
+ENV FRONTEND_PORT=80
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost/ || exit 1
+
+EXPOSE 80
+
+CMD ["/start-nginx.sh"]
