@@ -20,16 +20,10 @@ export default defineConfig(({ mode }) => {
   const apiRoutes = ["^/api/v1/", "^/api/v2/", "/health"];
 
   // Backend URL - prioritize Vercel environment variables
-  const backendUrl = 
-    env.VITE_BACKEND_URL || 
-    process.env.VITE_BACKEND_URL || 
-    "https://agent-platform-backend.ondigitalocean.app";
-
-  // Backend URL - your existing instance
   const backendUrl =
     env.VITE_BACKEND_URL ||
     process.env.VITE_BACKEND_URL ||
-    "https://your-backend-instance.ondigitalocean.app";
+    "https://agentplatform-6rol5.ondigitalocean.app";
 
   const port = Number(env.VITE_PORT) || 3000;
 
